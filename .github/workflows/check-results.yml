@@ -3,7 +3,12 @@ name: Check IOE notices
 on:
   schedule:
     - cron: "*/5 * * * *"
-  workflow_dispatch: {}   
+  workflow_dispatch:
+    inputs:
+      test_notice_id:
+        description: "Optional notice ID to force-send as a test"
+        required: false
+        default: ""
 
 permissions:
   contents: write   
@@ -27,6 +32,7 @@ jobs:
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           FILTER_KEYWORD: ""
+          TEST_NOTICE_ID: ${{ inputs.test_notice_id }}
         run: python scraper.py
 
       - name: Commit updated state

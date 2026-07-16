@@ -67,8 +67,6 @@ def fetch_notices() -> list[dict]:
 
         title = a.get_text(strip=True)
         if not title:
-            # Sometimes the visible text is on a sibling/parent element
-            # instead of the <a> itself - fall back to the row text.
             parent = a.find_parent(["tr", "li", "div"])
             title = parent.get_text(strip=True) if parent else f"Notice {notice_id}"
 

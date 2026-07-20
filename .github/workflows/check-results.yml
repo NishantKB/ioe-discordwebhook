@@ -3,7 +3,7 @@ name: Check IOE notices
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/2 * * * *"
   workflow_dispatch:
     inputs:
       test_notice_id:

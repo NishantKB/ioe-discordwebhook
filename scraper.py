@@ -291,7 +291,12 @@ def notify_discord(notice: dict) -> None:
 
     pdf_url, notice_image_url = fetch_notice_ck_table_assets(notice["url"])
     posted_at = datetime.now().astimezone().strftime("%Y-%m-%d %I:%M %p")
-    should_ping_everyone = "result" in notice["title"].lower()
+    lower_title = notice["title"].lower()
+    should_ping_everyone = (
+        "result" in lower_title
+        and "new course" in lower_title
+        and "i year i part" in lower_title
+    )
     payload = {
         "embeds": [
             {

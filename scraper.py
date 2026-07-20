@@ -3,6 +3,7 @@ import io
 import os
 import re
 import sys
+from datetime import datetime
 from pathlib import Path
 from urllib.parse import urljoin
 
@@ -16,6 +17,11 @@ DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL", "")
 
 FILTER_KEYWORD = os.environ.get("FILTER_KEYWORD", "Result")
 TEST_NOTICE_ID = os.environ.get("TEST_NOTICE_ID", "").strip()
+
+IOE_LOGO_URL = os.environ.get(
+    "IOE_LOGO_URL",
+    "https://exam.ioe.tu.edu.np/assets/logo.png",
+)
 
 STATE_FILE = Path(__file__).parent / "seen_notices.json"
 
@@ -272,15 +278,49 @@ def render_pdf_page_images(pdf_bytes: bytes) -> list[tuple[bytes, str]]:
         doc.close()
 
 
+def build_pdf_attachment_name(notice: dict) -> str:
+    safe_title = re.sub(r"[^A-Za-z0-9._-]+", "_", notice["title"]).strip("_")
+    if safe_title:
+        safe_title = safe_title[:80]
+        return f"{notice['id']}-{safe_title}.pdf"
+    return f"notice-{notice['id']}.pdf"
+
+
 def notify_discord(notice: dict) -> None:
     if not DISCORD_WEBHOOK_URL:
         print("No DISCORD_WEBHOOK_URL set - skipping Discord post. Notice:", notice)
         return
 
     pdf_url, notice_image_url = fetch_notice_ck_table_assets(notice["url"])
+    posted_at = datetime.now().astimezone().strftime("%Y-%m-%d %I:%M %p")
+    should_ping_everyone = "result" in notice["title"].lower()
     payload = {
-        "content": f"📢 **New IOE notice published!**\n**{notice['title']}**\n{notice['url']}"
+        "embeds": [
+            {
+                "author": {
+                    "name": "Office of the CONTROLLER OF EXAMINATIONS",
+                    "icon_url": IOE_LOGO_URL,
+                },
+                "title": notice["title"],
+                "url": notice["url"],
+                "description": "📢 New IOE notice published!",
+                "fields": [
+                    {
+                        "name": "Link",
+                        "value": notice["url"],
+                        "inline": False,
+                    }
+                ],
+                "color": 0x5865F2,
+                "footer": {
+                    "text": f"• Institute of Engineering • Notice No: {notice['id']} • Published on•{posted_at}"
+                },
+            }
+        ]
     }
+    if should_ping_everyone:
+        payload["content"] = "@everyone"
+        payload["allowed_mentions"] = {"parse": ["everyone"]}
     if pdf_url:
         try:
             pdf_resp = requests.get(pdf_url, headers=HEADERS, timeout=30)
@@ -290,7 +330,7 @@ def notify_discord(notice: dict) -> None:
             resp = requests.post(DISCORD_WEBHOOK_URL, json=payload, timeout=15)
         else:
             mime_type = pdf_resp.headers.get("Content-Type", "application/octet-stream")
-            pdf_name = Path(pdf_url.split("?")[0]).name or "notice.pdf"
+            pdf_name = build_pdf_attachment_name(notice)
             files = {"files[0]": (pdf_name, pdf_resp.content, mime_type)}
 
             page_images = render_pdf_page_images(pdf_resp.content)

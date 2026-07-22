@@ -294,8 +294,11 @@ def notify_discord(notice: dict) -> None:
     lower_title = notice["title"].lower()
     should_ping_everyone = (
         "result" in lower_title
-        and "new course" in lower_title
         and "i year i part" in lower_title
+        and (
+            "new course" in lower_title
+            or "old course" not in lower_title
+        )
     )
     payload = {
         "embeds": [

@@ -304,7 +304,7 @@ def notify_discord(notice: dict) -> None:
         "embeds": [
             {
                 "author": {
-                    "name": "Office of the CONTROLLER OF EXAMINATIONS",
+                    "name": "Examination Control Division, Institute of Engineering",
                     "icon_url": IOE_LOGO_URL,
                 },
                 "title": notice["title"],
@@ -319,7 +319,7 @@ def notify_discord(notice: dict) -> None:
                 ],
                 "color": 0x5865F2,
                 "footer": {
-                    "text": f"• Institute of Engineering • Notice No: {notice['id']} • Published on•{posted_at}"
+                    "text": f"• Tribhuvan University • Notice No: {notice['id']} • Published on•{posted_at}"
                 },
             }
         ]

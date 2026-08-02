@@ -4,6 +4,10 @@ import os
 import re
 import sys
 from datetime import datetime
+try:
+    from zoneinfo import ZoneInfo
+except Exception:
+    ZoneInfo = None
 from pathlib import Path
 from urllib.parse import urljoin
 
@@ -290,7 +294,11 @@ def notify_discord(notice: dict) -> None:
         return
 
     pdf_url, notice_image_url = fetch_notice_ck_table_assets(notice["url"])
-    posted_at = datetime.now().astimezone().strftime("%Y-%m-%d %I:%M %p")
+    if ZoneInfo is not None:
+        nepal_tz = ZoneInfo("Asia/Kathmandu")
+        posted_at = datetime.now(nepal_tz).strftime("%Y-%m-%d %I:%M %p")
+    else:
+        posted_at = datetime.now().astimezone().strftime("%Y-%m-%d %I:%M %p")
     lower_title = notice["title"].lower()
     should_ping_everyone = (
         "result" in lower_title
@@ -319,7 +327,7 @@ def notify_discord(notice: dict) -> None:
                 ],
                 "color": 0x5865F2,
                 "footer": {
-                    "text": f"• Institute of Engineering • Notice No: {notice['id']} • Published on•{posted_at}"
+                    "text": f"• Institute of Engineering • Notice No: {notice['id']} • Published on • {posted_at}"
                 },
             }
         ]

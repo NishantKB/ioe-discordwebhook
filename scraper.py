@@ -301,12 +301,9 @@ def notify_discord(notice: dict) -> None:
         posted_at = datetime.now().astimezone().strftime("%Y-%m-%d %I:%M %p")
     lower_title = notice["title"].lower()
     should_ping_everyone = (
-        "result" in lower_title
-        and "i year i part" in lower_title
-        and (
-            "new course" in lower_title
-            or "old course" not in lower_title
-        )
+        re.search(r"\bresult\b", lower_title)
+        and re.search(r"\bi year i part\b", lower_title)
+        and re.search(r"\bnew course\b", lower_title)
     )
     payload = {
         "embeds": [

@@ -50,6 +50,10 @@ TEST_CLASSROOM_LATEST = os.environ.get(
     "TEST_CLASSROOM_LATEST",
     ""
 ).strip().lower() in {"1", "true", "yes", "on"}
+CLASSROOM_COURSE_FILTER = os.environ.get(
+    "CLASSROOM_COURSE_FILTER",
+    ""
+).strip()  
 
 
 def get_credentials():
@@ -166,8 +170,20 @@ def resolve_creator_name(creator_user_id, course_members):
 
 
 def should_ping_everyone(course_name):
-    normalized_name = course_name.casefold()
+    normalized_name = " ".join(course_name.split()).casefold()
     return "electronics 2082 batch" in normalized_name
+
+
+def should_monitor_course(course_name):
+    if not CLASSROOM_COURSE_FILTER:
+        return True
+    
+    normalized_course = " ".join(course_name.split()).casefold()
+    filter_names = [
+        " ".join(name.split()).casefold() 
+        for name in CLASSROOM_COURSE_FILTER.split(",")
+    ]
+    return normalized_course in filter_names
 
 
 def download_drive_file(drive_service, file_id):
@@ -416,16 +432,27 @@ def check_classroom():
     print(
         f"Found {len(courses)} Classroom course(s)."
     )
+    
+    for course in courses:
+        print(f"  - {course.get('name', 'Unknown Course')}")
 
     all_announcements = []
 
     for course in courses:
 
         course_id = course["id"]
+        course_name = course.get("name", "")
+
+        if not should_monitor_course(course_name):
+            print(
+                f"Skipping: {course_name} (not in filter)"
+            )
+            continue
+
         course_members = get_course_members(service, course_id)
 
         print(
-            f"Checking: {course.get('name')}"
+            f"Checking: {course_name}"
         )
 
         announcements = get_announcements(
@@ -486,7 +513,6 @@ def check_classroom():
 
         return
 
-    # First run = establish baseline
     if not seen:
 
         seen = {

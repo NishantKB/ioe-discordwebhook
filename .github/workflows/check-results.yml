@@ -57,6 +57,7 @@ jobs:
         env:
           FILTER_KEYWORD: ""
           TEST_NOTICE_ID: ${{ inputs.test_notice_id }}
+          CLASSROOM_COURSE_FILTER: ""
         run: python main.py
 
       - name: Commit updated state

@@ -54,6 +54,17 @@ def save_seen_ids(ids: set) -> None:
     STATE_FILE.write_text(json.dumps(sorted(ids), indent=2))
 
 
+def get_log_timestamp() -> str:
+    if ZoneInfo is not None:
+        try:
+            nepal_tz = ZoneInfo("Asia/Kathmandu")
+            return datetime.now(nepal_tz).strftime("%Y-%m-%d %I:%M %p")
+        except Exception:
+            pass
+
+    return datetime.now().astimezone().strftime("%Y-%m-%d %I:%M %p")
+
+
 def fetch_notices() -> list[dict]:
     """Scrape the IOE homepage for notice links.
 
@@ -379,7 +390,10 @@ def notify_discord(notice: dict) -> None:
     if resp.status_code not in (200, 204):
         print(f"Discord webhook failed ({resp.status_code}): {resp.text}", file=sys.stderr)
     else:
-        print(f"Notified Discord about notice {notice['id']}: {notice['title']}")
+        print(
+            f"New record found and sent time: {get_log_timestamp()} | "
+            f"notice {notice['id']}: {notice['title']}"
+        )
 
 
 def main() -> None:
@@ -404,7 +418,10 @@ def main() -> None:
         return
 
     if first_run:
-        print(f"First run: recording {len(notices)} existing notices as baseline, no notifications sent.")
+        print(
+            f"No new record found time: {get_log_timestamp()} | "
+            f"first run baseline recorded ({len(notices)} notices)."
+        )
         save_seen_ids({n["id"] for n in notices})
         return
 
@@ -417,7 +434,17 @@ def main() -> None:
         notify_discord(notice)
 
     save_seen_ids(seen_ids)
-    print(f"Done. {len(new_notices)} new notice(s) found this run.")
+
+    if new_notices:
+        print(
+            f"New record found and sent time: {get_log_timestamp()} | "
+            f"{len(new_notices)} new notice(s) found this run."
+        )
+    else:
+        print(
+            f"No new record found time: {get_log_timestamp()} | "
+            f"0 new notice(s) found this run."
+        )
 
 
 if __name__ == "__main__":

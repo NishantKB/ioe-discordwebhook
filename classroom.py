@@ -115,6 +115,10 @@ def get_posted_at():
     return datetime.now().astimezone().strftime("%Y-%m-%d %I:%M %p")
 
 
+def get_log_timestamp() -> str:
+    return get_posted_at()
+
+
 def get_announcement_preview(announcement):
     materials = announcement.get("materials", []) or []
 
@@ -381,8 +385,8 @@ def send_to_discord(course, announcement, course_members, drive_service):
 
     else:
         print(
-            f"Sent Classroom announcement: "
-            f"{course.get('name')}"
+            f"New record found and sent time: {get_log_timestamp()} | "
+            f"Classroom announcement {announcement['id']} from {course.get('name')}"
         )
 
 
@@ -493,8 +497,8 @@ def check_classroom():
         save_seen(seen)
 
         print(
-            f"First Classroom run: "
-            f"recorded {len(seen)} existing announcements."
+            f"No new record found time: {get_log_timestamp()} | "
+            f"first Classroom run baseline recorded {len(seen)} announcements."
         )
 
         return
@@ -521,10 +525,16 @@ def check_classroom():
 
     save_seen(seen)
 
-    print(
-        f"Classroom check complete. "
-        f"{new_count} new announcement(s)."
-    )
+    if new_count == 0:
+        print(
+            f"No new record found time: {get_log_timestamp()} | "
+            f"0 new Classroom announcement(s)."
+        )
+    else:
+        print(
+            f"New record found and sent time: {get_log_timestamp()} | "
+            f"{new_count} new Classroom announcement(s)."
+        )
 
 
 if __name__ == "__main__":

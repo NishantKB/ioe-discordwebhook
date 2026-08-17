@@ -6,3 +6,6 @@ __pycache__/
 venv/
 .env
 .env.*
+credentials.json
+token.json
+classroom_seen.json

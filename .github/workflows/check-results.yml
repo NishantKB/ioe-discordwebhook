@@ -17,6 +17,11 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
+    env:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      CLASSROOM_WEBHOOK_URL: ${{ secrets.CLASSROOM_WEBHOOK_URL }}
+      GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+      GOOGLE_TOKEN_JSON: ${{ secrets.GOOGLE_TOKEN_JSON }}
     steps:
       - name: Check out repo
         uses: actions/checkout@v4
@@ -29,17 +34,36 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run scraper
+      - name: Prepare Google auth files
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          base_dir = Path.cwd()
+          credentials_json = os.environ.get("GOOGLE_CREDENTIALS_JSON", "").strip()
+          token_json = os.environ.get("GOOGLE_TOKEN_JSON", "").strip()
+
+          if not credentials_json or not token_json:
+            raise SystemExit(
+              "Missing Google Classroom secrets. Set GOOGLE_CREDENTIALS_JSON and GOOGLE_TOKEN_JSON in GitHub Secrets."
+            )
+
+          (base_dir / "credentials.json").write_text(credentials_json, encoding="utf-8")
+          (base_dir / "token.json").write_text(token_json, encoding="utf-8")
+          PY
+
+      - name: Run notification system
         env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           FILTER_KEYWORD: ""
           TEST_NOTICE_ID: ${{ inputs.test_notice_id }}
-        run: python scraper.py
+        run: python main.py
 
       - name: Commit updated state
         run: |
           git config user.name "ioe-notice-bot"
           git config user.email "actions@users.noreply.github.com"
           git add seen_notices.json
+          git add classroom_seen.json
           git diff --quiet --cached || git commit -m "Update seen notices"
           git push

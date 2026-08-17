@@ -15,6 +15,9 @@ import requests
 import fitz
 from bs4 import BeautifulSoup
 from PIL import Image
+from local_env import load_local_env
+
+load_local_env(Path(__file__).parent / ".env")
 
 IOE_URL = os.environ.get("IOE_URL", "https://exam.ioe.tu.edu.np/notices")
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL", "")

@@ -12,7 +12,7 @@ from pathlib import Path
 from urllib.parse import urljoin
 
 import requests
-import fitz
+import pymupdf
 from bs4 import BeautifulSoup
 from PIL import Image
 from local_env import load_local_env
@@ -55,6 +55,17 @@ def save_seen_ids(ids: set) -> None:
 
 
 def get_log_timestamp() -> str:
+    if ZoneInfo is not None:
+        try:
+            nepal_tz = ZoneInfo("Asia/Kathmandu")
+            return datetime.now(nepal_tz).strftime("%Y-%m-%d %I:%M %p")
+        except Exception:
+            pass
+
+    return datetime.now().astimezone().strftime("%Y-%m-%d %I:%M %p")
+
+
+def get_posted_timestamp() -> str:
     if ZoneInfo is not None:
         try:
             nepal_tz = ZoneInfo("Asia/Kathmandu")
@@ -271,7 +282,7 @@ def fetch_notice_file_url(notice_url: str) -> tuple[str, str]:
 
 def render_pdf_page_images(pdf_bytes: bytes) -> list[tuple[bytes, str]]:
     try:
-        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
     except Exception:
         return []
 
@@ -282,7 +293,7 @@ def render_pdf_page_images(pdf_bytes: bytes) -> list[tuple[bytes, str]]:
         page_images = []
         for page_number in range(doc.page_count):
             page = doc.load_page(page_number)
-            pixmap = page.get_pixmap(matrix=fitz.Matrix(1.8, 1.8), alpha=False)
+            pixmap = page.get_pixmap(matrix=pymupdf.Matrix(1.8, 1.8), alpha=False)
             image = Image.frombytes("RGB", [pixmap.width, pixmap.height], pixmap.samples)
 
             output = io.BytesIO()
@@ -309,8 +320,11 @@ def notify_discord(notice: dict) -> None:
 
     pdf_url, notice_image_url = fetch_notice_ck_table_assets(notice["url"])
     if ZoneInfo is not None:
-        nepal_tz = ZoneInfo("Asia/Kathmandu")
-        posted_at = datetime.now(nepal_tz).strftime("%Y-%m-%d %I:%M %p")
+        try:
+            nepal_tz = ZoneInfo("Asia/Kathmandu")
+            posted_at = datetime.now(nepal_tz).strftime("%Y-%m-%d %I:%M %p")
+        except Exception:
+            posted_at = datetime.now().astimezone().strftime("%Y-%m-%d %I:%M %p")
     else:
         posted_at = datetime.now().astimezone().strftime("%Y-%m-%d %I:%M %p")
     lower_title = notice["title"].lower()

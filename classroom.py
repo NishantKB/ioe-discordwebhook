@@ -199,46 +199,7 @@ def download_drive_file(drive_service, file_id):
 
 
 def build_announcement_attachments(drive_service, announcement):
-    attachments = []
-    materials = announcement.get("materials", []) or []
-
-    for material in materials:
-        drive_file = material.get("driveFile", {}).get("driveFile", {})
-        file_id = drive_file.get("id", "")
-
-        if not file_id:
-            continue
-
-        try:
-            file_info = drive_service.files().get(
-                fileId=file_id,
-                fields="id,name,mimeType"
-            ).execute()
-        except HttpError as exc:
-            print(
-                "Could not read Classroom attachment from Google Drive. "
-                "Enable the Drive API for this Google Cloud project to post PDFs/images."
-            )
-            print(f"Drive API error: {exc}")
-            continue
-
-        mime_type = file_info.get("mimeType", "")
-        file_name = file_info.get("name", "attachment")
-
-        try:
-            file_bytes = download_drive_file(drive_service, file_id)
-        except Exception as exc:
-            print(f"Failed to download Classroom attachment {file_name}: {exc}")
-            continue
-
-        if mime_type == "application/pdf":
-            for page_bytes, page_name in render_pdf_page_images(file_bytes):
-                attachments.append((page_name, page_bytes, "image/png"))
-        elif mime_type.startswith("image/"):
-            extension = Path(file_name).suffix or ".png"
-            attachments.append((f"image{extension}", file_bytes, mime_type))
-
-    return attachments
+    return []
 
 
 def send_embed_message(payload, footer_icon_bytes=None):

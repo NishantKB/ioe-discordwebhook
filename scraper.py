@@ -412,7 +412,12 @@ def notify_discord(notice: dict) -> None:
 
 def main() -> None:
     seen_ids = load_seen_ids()
-    notices = fetch_notices()
+    try:
+        notices = fetch_notices()
+    except requests.RequestException as exc:
+        print(f"Failed to fetch IOE notices: {exc}", file=sys.stderr)
+        print("Skipping IOE notice check for this run.")
+        return
 
     if not notices:
         print("No notices found on the page - the site structure may have changed. "

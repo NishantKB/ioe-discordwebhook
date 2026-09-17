@@ -331,7 +331,7 @@ def send_to_discord(course, announcement, course_members, drive_service):
 
     if not webhook_url:
         print("CLASSROOM_WEBHOOK_URL is not configured.")
-        return
+        return False
 
     text = announcement.get(
         "text",
@@ -398,12 +398,13 @@ def send_to_discord(course, announcement, course_members, drive_service):
             f"Discord error {response.status_code}: "
             f"{response.text}"
         )
+        return False
 
-    else:
-        print(
-            f"New record found and sent time: {get_log_timestamp()} | "
-            f"Classroom announcement {announcement['id']} from {course.get('name')}"
-        )
+    print(
+        f"New record found and sent time: {get_log_timestamp()} | "
+        f"Classroom announcement {announcement['id']} from {course.get('name')}"
+    )
+    return True
 
 
 def check_classroom():
@@ -543,11 +544,14 @@ def check_classroom():
             f"{course.get('name')}"
         )
 
-        send_to_discord(course, announcement, course_members, drive_service)
-
-        seen.add(announcement_id)
-
-        new_count += 1
+        if send_to_discord(course, announcement, course_members, drive_service):
+            seen.add(announcement_id)
+            new_count += 1
+        else:
+            print(
+                f"Keeping Classroom announcement {announcement_id} pending "
+                "because Discord did not accept it."
+            )
 
     save_seen(seen)
 

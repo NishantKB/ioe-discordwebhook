@@ -95,16 +95,20 @@ def get_credentials():
 def load_seen():
     if STATE_FILE.exists():
         try:
-            return set(json.loads(STATE_FILE.read_text()))
+            stored = json.loads(STATE_FILE.read_text())
+            if isinstance(stored, list):
+                return {announcement_id: "" for announcement_id in stored}
+            if isinstance(stored, dict):
+                return stored
         except Exception:
-            return set()
+            pass
 
-    return set()
+    return {}
 
 
 def save_seen(seen):
     STATE_FILE.write_text(
-        json.dumps(sorted(seen), indent=2)
+        json.dumps(dict(sorted(seen.items())), indent=2)
     )
 
 
@@ -517,7 +521,10 @@ def check_classroom():
     if not seen:
 
         seen = {
-            announcement["id"]
+            announcement["id"]: announcement.get(
+                "updateTime",
+                announcement.get("creationTime", "")
+            )
             for _, announcement, _ in all_announcements
         }
 
@@ -535,17 +542,22 @@ def check_classroom():
     for course, announcement, course_members in all_announcements:
 
         announcement_id = announcement["id"]
-
-        if announcement_id in seen:
-            continue
-
-        print(
-            f"NEW Classroom announcement: "
-            f"{course.get('name')}"
+        announcement_version = announcement.get(
+            "updateTime",
+            announcement.get("creationTime", "")
         )
 
+        if announcement_id in seen and seen[announcement_id] == "":
+            seen[announcement_id] = announcement_version
+
+        if announcement_id in seen and announcement_version <= seen[announcement_id]:
+            continue
+
+        event_type = "UPDATED" if announcement_id in seen else "NEW"
+        print(f"{event_type} Classroom announcement: {course.get('name')}")
+
         if send_to_discord(course, announcement, course_members, drive_service):
-            seen.add(announcement_id)
+            seen[announcement_id] = announcement_version
             new_count += 1
         else:
             print(

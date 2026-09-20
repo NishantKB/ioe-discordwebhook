@@ -283,6 +283,15 @@ def send_attachment_message(attachments):
     )
 
 
+def send_attachment_messages(attachments):
+    for start in range(0, len(attachments), 10):
+        response = send_attachment_message(attachments[start:start + 10])
+        if response.status_code not in (200, 204):
+            return response
+
+    return response
+
+
 def get_courses(service):
     courses = []
 
@@ -395,7 +404,7 @@ def send_to_discord(course, announcement, course_members, drive_service):
     response = send_embed_message(payload, footer_icon_bytes)
 
     if response.status_code in (200, 204) and attachments:
-        response = send_attachment_message(attachments)
+        response = send_attachment_messages(attachments)
 
     if response.status_code not in (200, 204):
         print(

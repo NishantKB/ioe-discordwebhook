@@ -123,6 +123,34 @@ def get_posted_at():
     return datetime.now().astimezone().strftime("%Y-%m-%d %I:%M %p")
 
 
+def get_seen_version(record):
+    if isinstance(record, dict):
+        return record.get("version", "")
+
+    return record
+
+
+def get_seen_text(record):
+    if isinstance(record, dict):
+        return record.get("text", "")
+
+    return ""
+
+
+def get_announcement_text(announcement):
+    return announcement.get(
+        "text",
+        "New Google Classroom announcement"
+    ).strip() or "New Google Classroom announcement"
+
+
+def limit_embed_text(text, limit):
+    if len(text) <= limit:
+        return text
+
+    return f"{text[:limit - 16].rstrip()}\n...[truncated]"
+
+
 def get_log_timestamp() -> str:
     return get_posted_at()
 
@@ -346,18 +374,14 @@ def send_to_discord(course, announcement, course_members, drive_service):
         print("CLASSROOM_WEBHOOK_URL is not configured.")
         return False
 
-    text = announcement.get(
-        "text",
-        "New Google Classroom announcement"
-    )
-
     link = announcement.get(
         "alternateLink",
         ""
     )
 
     posted_at = get_posted_at()
-    announcement_text = text.strip() or "New Google Classroom announcement"
+    announcement_text = get_announcement_text(announcement)
+    previous_text = announcement.get("_previous_text", "").strip()
     creator_name = resolve_creator_name(
         announcement.get("creatorUserId", ""),
         course_members
@@ -375,7 +399,14 @@ def send_to_discord(course, announcement, course_members, drive_service):
                 },
                 "title": course.get("name", "Google Classroom"),
                 "url": link,
-                "description": f"📢 {announcement_text[:3800]}",
+                "description": (
+                    f"📢 **Previous message:**\n"
+                    f"{limit_embed_text(previous_text, 1800)}\n\n"
+                    f"**Edited message:**\n"
+                    f"{limit_embed_text(announcement_text, 1800)}"
+                    if previous_text
+                    else f"📢 {announcement_text[:3800]}"
+                ),
                 "fields": [
                     {
                         "name": "👤 Posted by",
@@ -530,10 +561,13 @@ def check_classroom():
     if not seen:
 
         seen = {
-            announcement["id"]: announcement.get(
-                "updateTime",
-                announcement.get("creationTime", "")
-            )
+            announcement["id"]: {
+                "version": announcement.get(
+                    "updateTime",
+                    announcement.get("creationTime", "")
+                ),
+                "text": get_announcement_text(announcement),
+            }
             for _, announcement, _ in all_announcements
         }
 
@@ -556,17 +590,29 @@ def check_classroom():
             announcement.get("creationTime", "")
         )
 
-        if announcement_id in seen and seen[announcement_id] == "":
-            seen[announcement_id] = announcement_version
+        previous_record = seen.get(announcement_id)
+        previous_version = get_seen_version(previous_record)
+        previous_text = get_seen_text(previous_record)
 
-        if announcement_id in seen and announcement_version <= seen[announcement_id]:
+        if announcement_id in seen and previous_version == "":
+            seen[announcement_id] = {
+                "version": announcement_version,
+                "text": get_announcement_text(announcement),
+            }
+            previous_version = announcement_version
+
+        if announcement_id in seen and announcement_version <= previous_version:
             continue
 
         event_type = "UPDATED" if announcement_id in seen else "NEW"
         print(f"{event_type} Classroom announcement: {course.get('name')}")
 
+        announcement["_previous_text"] = previous_text
         if send_to_discord(course, announcement, course_members, drive_service):
-            seen[announcement_id] = announcement_version
+            seen[announcement_id] = {
+                "version": announcement_version,
+                "text": get_announcement_text(announcement),
+            }
             new_count += 1
         else:
             print(

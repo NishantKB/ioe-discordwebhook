@@ -397,7 +397,11 @@ def send_to_discord(course, announcement, course_members, drive_service):
                     "name": "Google Classroom",
                     "icon_url": CLASSROOM_LOGO_URL,
                 },
-                "title": course.get("name", "Google Classroom"),
+                "title": (
+                    f"{course.get('name', 'Google Classroom')} [EDITED NOTICE]"
+                    if previous_text
+                    else course.get("name", "Google Classroom")
+                ),
                 "url": link,
                 "description": (
                     f"📢 **Previous message:**\n"

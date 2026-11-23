@@ -203,7 +203,8 @@ def resolve_creator_name(creator_user_id, course_members):
 
 def should_ping_everyone(course_name):
     normalized_name = " ".join(course_name.split()).casefold()
-    return "electronics 2082 batch" in normalized_name
+    normalized_name = normalized_name.replace(" / ", "/").replace("/ ", "/").replace(" /", "/")
+    return "bct/bei 2082 department notice board" in normalized_name
 
 
 def should_monitor_course(course_name):
